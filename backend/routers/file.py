@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form, status, HTTPExce
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import Optional
+from uuid import UUID
 
 from database import get_db
 from models.user import User
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/files", tags=["files"])
 @router.post("/upload", response_model=FileUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_file(
     file: UploadFile = File(...),
-    folder_id: Optional[int] = Form(None),
+    folder_id: Optional[UUID] = Form(None),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -59,7 +60,7 @@ async def upload_file(
 
 @router.get("/", response_model=list[FileListResponse])
 async def list_files(
-    folder_id: Optional[int] = None,
+    folder_id: Optional[UUID] = None,
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(get_current_active_user),
@@ -90,7 +91,7 @@ async def list_files(
 
 @router.get("/{file_id}", response_model=FileUploadResponse)
 async def get_file(
-    file_id: int,
+    file_id: UUID,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -109,7 +110,7 @@ async def get_file(
 
 @router.get("/{file_id}/download-url")
 async def get_download_url(
-    file_id: int,
+    file_id: UUID,
     expires_in: int = 3600,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
@@ -134,7 +135,7 @@ async def get_download_url(
 
 @router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_file(
-    file_id: int,
+    file_id: UUID,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):

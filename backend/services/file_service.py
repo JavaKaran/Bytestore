@@ -2,6 +2,7 @@ import boto3
 from botocore.exceptions import ClientError
 from sqlalchemy.orm import Session
 from typing import Optional
+from uuid import UUID
 import uuid
 from datetime import datetime
 import os
@@ -28,7 +29,7 @@ class FileService:
             region_name='auto'  # R2 uses 'auto' as the region
         )
 
-    def _generate_storage_key(self, user_id: int, filename: str, folder_id: Optional[int] = None) -> str:
+    def _generate_storage_key(self, user_id: UUID, filename: str, folder_id: Optional[UUID] = None) -> str:
         """Generate a unique storage key for the file in R2"""
         # Create a unique filename to avoid collisions
         unique_id = str(uuid.uuid4())
@@ -51,11 +52,11 @@ class FileService:
 
     def upload_file(
         self,
-        user_id: int,
+        user_id: UUID,
         file_content: bytes,
         filename: str,
         mime_type: Optional[str] = None,
-        folder_id: Optional[int] = None
+        folder_id: Optional[UUID] = None
     ) -> File:
         """
         Upload a file to Cloudflare R2 and save metadata to database.
@@ -123,7 +124,7 @@ class FileService:
             self.db.rollback()
             raise FileUploadException(f"Error uploading file: {str(e)}")
 
-    def get_file_by_id(self, file_id: int, user_id: int) -> Optional[File]:
+    def get_file_by_id(self, file_id: UUID, user_id: UUID) -> Optional[File]:
         """Get a file by ID, ensuring it belongs to the user"""
         return self.db.query(File).filter(
             File.id == file_id,
@@ -132,8 +133,8 @@ class FileService:
 
     def get_user_files(
         self,
-        user_id: int,
-        folder_id: Optional[int] = None,
+        user_id: UUID,
+        folder_id: Optional[UUID] = None,
         skip: int = 0,
         limit: int = 100
     ) -> list[File]:
@@ -153,7 +154,7 @@ class FileService:
         
         return query.order_by(File.created_at.desc()).offset(skip).limit(limit).all()
 
-    def delete_file(self, file_id: int, user_id: int) -> bool:
+    def delete_file(self, file_id: UUID, user_id: UUID) -> bool:
         """Delete a file from R2 and mark as deleted in database"""
         file_record = self.get_file_by_id(file_id, user_id)
         
@@ -180,7 +181,7 @@ class FileService:
             self.db.rollback()
             raise FileUploadException(f"Error deleting file: {str(e)}")
 
-    def get_file_download_url(self, file_id: int, user_id: int, expires_in: int = 3600) -> Optional[str]:
+    def get_file_download_url(self, file_id: UUID, user_id: UUID, expires_in: int = 3600) -> Optional[str]:
         """
         Generate a presigned URL for downloading a file from R2.
         

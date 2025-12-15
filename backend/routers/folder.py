@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
+from uuid import UUID
 
 from database import get_db
 from models.user import User
@@ -46,7 +47,7 @@ async def create_folder(
 
 @router.get("/", response_model=list[FolderResponse])
 async def list_folders(
-    parent_folder_id: Optional[int] = Query(None, description="Filter by parent folder ID (None for root folders)"),
+    parent_folder_id: Optional[UUID] = Query(None, description="Filter by parent folder ID (None for root folders)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     current_user: User = Depends(get_current_active_user),
@@ -77,7 +78,7 @@ async def list_folders(
 
 @router.get("/tree", response_model=list[FolderTreeResponse])
 async def get_folder_tree(
-    parent_folder_id: Optional[int] = Query(None, description="Start from specific parent folder (None for root)"),
+    parent_folder_id: Optional[UUID] = Query(None, description="Start from specific parent folder (None for root)"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -104,7 +105,7 @@ async def get_folder_tree(
 
 @router.get("/{folder_id}", response_model=FolderResponse)
 async def get_folder(
-    folder_id: int,
+    folder_id: UUID,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -146,7 +147,7 @@ async def get_folder_by_path(
 
 @router.put("/{folder_id}", response_model=FolderResponse)
 async def update_folder(
-    folder_id: int,
+    folder_id: UUID,
     folder_data: FolderUpdate,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
@@ -175,7 +176,7 @@ async def update_folder(
 
 @router.delete("/{folder_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_folder(
-    folder_id: int,
+    folder_id: UUID,
     force: bool = Query(False, description="Force delete even if folder contains files/subfolders"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)

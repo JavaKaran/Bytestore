@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import Optional, List
 from datetime import datetime
+from uuid import UUID
 
 from models.folder import Folder
 from exceptions.exceptions import FileUploadException
@@ -32,7 +33,7 @@ class FolderService:
         for child in children:
             self._update_path(child)
 
-    def create_folder(self, user_id: int, name: str, parent_folder_id: Optional[int] = None) -> Folder:
+    def create_folder(self, user_id: UUID, name: str, parent_folder_id: Optional[UUID] = None) -> Folder:
         """
         Create a new folder.
         
@@ -78,7 +79,7 @@ class FolderService:
         
         return folder
 
-    def get_folder_by_id(self, folder_id: int, user_id: int) -> Optional[Folder]:
+    def get_folder_by_id(self, folder_id: UUID, user_id: UUID) -> Optional[Folder]:
         """Get a folder by ID, ensuring it belongs to the user"""
         return self.db.query(Folder).filter(
             Folder.id == folder_id,
@@ -87,8 +88,8 @@ class FolderService:
 
     def get_user_folders(
         self,
-        user_id: int,
-        parent_folder_id: Optional[int] = None,
+        user_id: UUID,
+        parent_folder_id: Optional[UUID] = None,
         skip: int = 0,
         limit: int = 100
     ) -> List[Folder]:
@@ -115,7 +116,7 @@ class FolderService:
         
         return query.order_by(Folder.name.asc()).offset(skip).limit(limit).all()
 
-    def get_folder_tree(self, user_id: int, parent_folder_id: Optional[int] = None) -> List[dict]:
+    def get_folder_tree(self, user_id: UUID, parent_folder_id: Optional[UUID] = None) -> List[dict]:
         """
         Get folder tree structure recursively.
         
@@ -164,10 +165,10 @@ class FolderService:
 
     def update_folder(
         self,
-        folder_id: int,
-        user_id: int,
+        folder_id: UUID,
+        user_id: UUID,
         name: Optional[str] = None,
-        parent_folder_id: Optional[int] = None
+        parent_folder_id: Optional[UUID] = None
     ) -> Folder:
         """
         Update a folder's name and/or parent.
@@ -228,7 +229,7 @@ class FolderService:
         
         return folder
 
-    def _is_descendant(self, ancestor_id: int, potential_descendant_id: int) -> bool:
+    def _is_descendant(self, ancestor_id: UUID, potential_descendant_id: UUID) -> bool:
         """Check if potential_descendant_id is a descendant of ancestor_id"""
         current = self.db.query(Folder).filter(Folder.id == potential_descendant_id).first()
         while current and current.parent_folder_id:
@@ -237,7 +238,7 @@ class FolderService:
             current = self.db.query(Folder).filter(Folder.id == current.parent_folder_id).first()
         return False
 
-    def delete_folder(self, folder_id: int, user_id: int, force: bool = False) -> bool:
+    def delete_folder(self, folder_id: UUID, user_id: UUID, force: bool = False) -> bool:
         """
         Delete a folder.
         
@@ -289,7 +290,7 @@ class FolderService:
         
         return True
 
-    def get_folder_by_path(self, user_id: int, path: str) -> Optional[Folder]:
+    def get_folder_by_path(self, user_id: UUID, path: str) -> Optional[Folder]:
         """
         Get a folder by its full path.
         

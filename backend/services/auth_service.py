@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import Optional
+from uuid import UUID
 
 from models.user import User
 from schemas.auth import UserCreate, Token
@@ -127,7 +128,7 @@ class AuthService:
         """
         return self._get_user_by_email(email)
     
-    def get_user_by_id(self, user_id: int) -> Optional[User]:
+    def get_user_by_id(self, user_id: UUID) -> Optional[User]:
         """
         Get a user by ID.
         
