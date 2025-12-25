@@ -37,5 +37,42 @@ export const folderService = {
         });
         return response.data;
     },
+
+    /**
+     * Get folder by ID
+     */
+    getFolderById: async (folderId: string): Promise<Folder> => {
+        const response = await api.get<Folder>(`/folders/${folderId}`);
+        return response.data;
+    },
+
+    /**
+     * Update folder (rename or move)
+     */
+    updateFolder: async (folderId: string, name?: string, parentFolderId?: string): Promise<Folder> => {
+        const response = await api.put<Folder>(`/folders/${folderId}`, {
+            name,
+            parent_folder_id: parentFolderId || null,
+        });
+        return response.data;
+    },
+
+    /**
+     * Move folder to a different parent folder
+     */
+    moveFolder: async (folderId: string, parentFolderId: string | null): Promise<Folder> => {
+        const response = await api.put<Folder>(`/folders/${folderId}/move`, {
+            parent_folder_id: parentFolderId,
+        });
+        return response.data;
+    },
+
+    /**
+     * Get all folders for a user
+     */
+    getAllFolders: async (): Promise<Folder[]> => {
+        const response = await api.get<Folder[]>('/folders/all');
+        return response.data;
+    },
 };
 

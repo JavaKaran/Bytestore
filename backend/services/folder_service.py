@@ -63,17 +63,29 @@ class FolderService:
         if existing:
             raise FileUploadException(f"Folder '{name}' already exists in this location")
         
-        # Create folder
+        # Create folder with initial path to avoid null constraint violation
+        # We'll calculate the proper path after flush when we have the folder ID
+        if parent_folder_id is None:
+            initial_path = f"/{name}"
+        else:
+            # Get parent path for initial calculation
+            parent = self.db.query(Folder).filter(Folder.id == parent_folder_id).first()
+            if parent:
+                initial_path = f"{parent.path}/{name}"
+            else:
+                initial_path = f"/{name}"
+        
         folder = Folder(
             user_id=user_id,
             name=name,
-            parent_folder_id=parent_folder_id
+            parent_folder_id=parent_folder_id,
+            path=initial_path  # Set initial path to avoid null constraint violation
         )
         
         self.db.add(folder)
         self.db.flush()
         
-        # Build and set path
+        # Build and set proper path (now that folder has an ID and can be referenced)
         self._update_path(folder)
         self.db.commit()
         
@@ -229,6 +241,66 @@ class FolderService:
         
         return folder
 
+    def move_folder(
+        self,
+        folder_id: UUID,
+        user_id: UUID,
+        parent_folder_id: Optional[UUID] = None
+    ) -> Folder:
+        """
+        Move a folder to a different parent folder.
+        
+        Args:
+            folder_id: ID of the folder to move
+            user_id: ID of the user (for authorization)
+            parent_folder_id: Destination parent folder ID (None for root)
+            
+        Returns:
+            Updated Folder object
+        """
+        folder = self.get_folder_by_id(folder_id, user_id)
+        if not folder:
+            raise FileUploadException("Folder not found or access denied")
+        
+        # Prevent moving folder into itself or its descendants
+        if parent_folder_id == folder_id:
+            raise FileUploadException("Cannot move folder into itself")
+        
+        if parent_folder_id and self._is_descendant(folder_id, parent_folder_id):
+            raise FileUploadException("Cannot move folder into its own descendant")
+        
+        # Validate new parent exists and belongs to user
+        if parent_folder_id:
+            new_parent = self.get_folder_by_id(parent_folder_id, user_id)
+            if not new_parent:
+                raise FileUploadException("Parent folder not found or access denied")
+        
+        # Check for name conflicts in the destination folder
+        existing = self.db.query(Folder).filter(
+            and_(
+                Folder.user_id == user_id,
+                Folder.name == folder.name,
+                Folder.parent_folder_id == parent_folder_id,
+                Folder.id != folder_id
+            )
+        ).first()
+        
+        if existing:
+            folder_name = "root"
+            if parent_folder_id:
+                parent = self.get_folder_by_id(parent_folder_id, user_id)
+                folder_name = parent.name if parent else "selected folder"
+            raise FileUploadException(f"Folder '{folder.name}' already exists in {folder_name}")
+        
+        # Update parent_folder_id (can be None)
+        folder.parent_folder_id = parent_folder_id
+        
+        # Update path for folder and all descendants
+        self._update_path(folder)
+        self.db.commit()
+        
+        return folder
+
     def _is_descendant(self, ancestor_id: UUID, potential_descendant_id: UUID) -> bool:
         """Check if potential_descendant_id is a descendant of ancestor_id"""
         current = self.db.query(Folder).filter(Folder.id == potential_descendant_id).first()
@@ -307,4 +379,18 @@ class FolderService:
                 Folder.path == path
             )
         ).first()
+    
+    def get_all_folders(self, user_id: UUID) -> List[Folder]:
+        """
+        Get all folders for a user (flat list, no hierarchy).
+        
+        Args:
+            user_id: ID of the user
+            
+        Returns:
+            List of all folders
+        """
+        return self.db.query(Folder).filter(
+            Folder.user_id == user_id
+        ).all()
 

@@ -36,3 +36,27 @@ class FileListResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class FileUpdate(BaseModel):
+    name: Optional[str] = None
+    folder_id: Optional[UUID] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "renamed_file.pdf",
+                "folder_id": None
+            }
+        }
+
+
+class FileMove(BaseModel):
+    folder_id: Optional[UUID] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "folder_id": "550e8400-e29b-41d4-a716-446655440000"
+            }
+        }
+

@@ -23,7 +23,7 @@ export default function RootLayout({
         <html lang="en" className="dark">
             <body className={jetbrainsMono.variable}>
                 {children}
-                <Toaster />
+                <Toaster theme="dark" />
             </body>
         </html>
     )

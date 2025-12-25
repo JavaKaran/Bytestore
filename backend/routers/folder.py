@@ -8,6 +8,7 @@ from models.user import User
 from schemas.folder import (
     FolderCreate,
     FolderUpdate,
+    FolderMove,
     FolderResponse,
     FolderWithChildrenResponse,
     FolderTreeResponse
@@ -41,7 +42,7 @@ async def create_folder(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail=e.detail
         )
 
 
@@ -72,7 +73,7 @@ async def list_folders(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail='Failed to list folders'
         )
 
 
@@ -99,7 +100,53 @@ async def get_folder_tree(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail='Failed to get folder tree'
+        )
+
+
+@router.get("/all", response_model=list[FolderResponse])
+async def get_all_folders(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all folders for the current user (flat list).
+    """
+    folder_service = FolderService(db)
+    try:
+        folders = folder_service.get_all_folders(current_user.id)
+        return folders
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Failed to get all folders'
+        )
+
+
+@router.put("/{folder_id}/move", response_model=FolderResponse)
+async def move_folder(
+    folder_id: UUID,
+    move_data: FolderMove,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Move a folder to a different parent folder.
+    
+    - **parent_folder_id**: New parent folder ID (None for root)
+    """
+    folder_service = FolderService(db)
+    try:
+        folder = folder_service.move_folder(
+            folder_id=folder_id,
+            user_id=current_user.id,
+            parent_folder_id=move_data.parent_folder_id
+        )
+        return folder
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e.detail) if hasattr(e, 'detail') else str(e)
         )
 
 
@@ -170,7 +217,7 @@ async def update_folder(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail='Failed to update folder'
         )
 
 
@@ -201,6 +248,6 @@ async def delete_folder(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail='Failed to delete folder'
         )
 

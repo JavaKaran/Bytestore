@@ -1,19 +1,26 @@
 'use client'
 
+import { useRouter, useParams } from 'next/navigation'
 import { useDriveData } from '@/lib/hooks/useDriveData'
 import { useDriveActions } from '@/lib/hooks/useDriveActions'
 import { DriveLayout } from '@/components/layout/DriveLayout'
 
-export default function DashboardPage() {
+export default function FolderPage() {
+    const router = useRouter()
+    const params = useParams()
+    const folderId = params.folder_id as string
+    
     const {
         user,
+        currentFolder,
         folders,
         files,
         loading,
         itemsLoading,
         refreshFolders,
         refreshFiles,
-    } = useDriveData()
+        refreshCurrentFolder,
+    } = useDriveData({ folderId })
 
     const {
         uploading,
@@ -37,14 +44,24 @@ export default function DashboardPage() {
         handleMoveClick,
         handleMove,
     } = useDriveActions({
+        folderId,
         onFileUploaded: refreshFiles,
         onFolderCreated: refreshFolders,
         onFolderRenamed: refreshFolders,
         onFileRenamed: refreshFiles,
+        onCurrentFolderRenamed: refreshCurrentFolder,
         onItemMoved: async () => {
             await Promise.all([refreshFolders(), refreshFiles()])
         },
     })
+
+    const handleBackClick = () => {
+        if (currentFolder?.parent_folder_id) {
+            router.push(`/folder/${currentFolder.parent_folder_id}`)
+        } else {
+            router.push('/dashboard')
+        }
+    }
 
     if (loading) {
         return (
@@ -57,7 +74,9 @@ export default function DashboardPage() {
     return (
         <DriveLayout
             user={user}
-            title={`Welcome back, ${user?.username}!`}
+            title={currentFolder ? currentFolder.name : 'Folder'}
+            showBackButton
+            onBackClick={handleBackClick}
             uploading={uploading}
             popoverOpen={popoverOpen}
             setPopoverOpen={setPopoverOpen}

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from database import get_db
 from models.user import User
-from schemas.file import FileUploadResponse, FileListResponse
+from schemas.file import FileUploadResponse, FileListResponse, FileUpdate, FileMove
 from services.file_service import FileService
 from dependencies.auth import get_current_active_user
 
@@ -85,7 +85,7 @@ async def list_files(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail='Failed to list files'
         )
 
 
@@ -131,6 +131,62 @@ async def get_download_url(
         )
     
     return {"download_url": url, "expires_in": expires_in}
+
+
+@router.put("/{file_id}", response_model=FileUploadResponse)
+async def update_file(
+    file_id: UUID,
+    file_data: FileUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a file's name and/or folder.
+    
+    - **name**: Optional new file name
+    - **folder_id**: Optional new folder ID
+    """
+    file_service = FileService(db)
+    try:
+        file_record = file_service.update_file(
+            file_id=file_id,
+            user_id=current_user.id,
+            name=file_data.name,
+            folder_id=file_data.folder_id
+        )
+        return file_record
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e.detail)
+        )
+
+
+@router.put("/{file_id}/move", response_model=FileUploadResponse)
+async def move_file(
+    file_id: UUID,
+    move_data: FileMove,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Move a file to a different folder.
+    
+    - **folder_id**: Destination folder ID (None for root)
+    """
+    file_service = FileService(db)
+    try:
+        file_record = file_service.move_file(
+            file_id=file_id,
+            user_id=current_user.id,
+            folder_id=move_data.folder_id
+        )
+        return file_record
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e.detail) if hasattr(e, 'detail') else str(e)
+        )
 
 
 @router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)

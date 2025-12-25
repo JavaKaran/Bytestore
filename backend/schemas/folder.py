@@ -30,6 +30,17 @@ class FolderUpdate(BaseModel):
         }
 
 
+class FolderMove(BaseModel):
+    parent_folder_id: Optional[UUID] = Field(None, description="New parent folder ID")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "parent_folder_id": "550e8400-e29b-41d4-a716-446655440000"
+            }
+        }
+
+
 class FolderResponse(BaseModel):
     id: UUID
     user_id: UUID

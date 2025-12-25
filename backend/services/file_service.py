@@ -183,6 +183,107 @@ class FileService:
             self.db.rollback()
             raise FileUploadException(f"Error deleting file: {str(e)}")
 
+    def update_file(
+        self,
+        file_id: UUID,
+        user_id: UUID,
+        name: Optional[str] = None,
+        folder_id: Optional[UUID] = None
+    ) -> File:
+        """
+        Update a file's name and/or folder.
+        
+        Args:
+            file_id: ID of the file to update
+            user_id: ID of the user (for authorization)
+            name: Optional new name
+            folder_id: Optional new folder ID
+            
+        Returns:
+            Updated File object
+        """
+        file_record = self.get_file_by_id(file_id, user_id)
+        if not file_record:
+            raise FileUploadException("File not found or access denied")
+        
+        # Validate folder belongs to user if provided
+        if folder_id is not None:
+            if folder_id:
+                folder = self.folder_service.get_folder_by_id(folder_id, user_id)
+                if not folder:
+                    raise FileUploadException("Folder not found or access denied")
+        
+        # Check for name conflicts if name is changing
+        if name:
+            existing = self.db.query(File).filter(
+                File.user_id == user_id,
+                File.name == name,
+                File.folder_id == (folder_id if folder_id is not None else file_record.folder_id),
+                File.id != file_id,
+                File.status != FileStatus.DELETED
+            ).first()
+            
+            if existing:
+                raise FileUploadException(f"File '{name}' already exists in this location")
+        
+        # Update file
+        if name:
+            file_record.name = name
+        if folder_id is not None:
+            file_record.folder_id = folder_id
+        
+        self.db.commit()
+        return file_record
+
+    def move_file(
+        self,
+        file_id: UUID,
+        user_id: UUID,
+        folder_id: Optional[UUID] = None
+    ) -> File:
+        """
+        Move a file to a different folder.
+        
+        Args:
+            file_id: ID of the file to move
+            user_id: ID of the user (for authorization)
+            folder_id: Destination folder ID (None for root)
+            
+        Returns:
+            Updated File object
+        """
+        file_record = self.get_file_by_id(file_id, user_id)
+        if not file_record:
+            raise FileUploadException("File not found or access denied")
+        
+        # Validate folder belongs to user if provided
+        if folder_id:
+            folder = self.folder_service.get_folder_by_id(folder_id, user_id)
+            if not folder:
+                raise FileUploadException("Folder not found or access denied")
+        
+        # Check for name conflicts in the destination folder
+        existing = self.db.query(File).filter(
+            File.user_id == user_id,
+            File.name == file_record.name,
+            File.folder_id == folder_id,
+            File.id != file_id,
+            File.status != FileStatus.DELETED
+        ).first()
+        
+        if existing:
+            folder_name = "root"
+            if folder_id:
+                folder = self.folder_service.get_folder_by_id(folder_id, user_id)
+                folder_name = folder.name if folder else "selected folder"
+            raise FileUploadException(f"File '{file_record.name}' already exists in {folder_name}")
+        
+        # Update folder_id (can be None)
+        file_record.folder_id = folder_id
+        
+        self.db.commit()
+        return file_record
+
     def get_file_download_url(self, file_id: UUID, user_id: UUID, expires_in: int = 3600) -> Optional[str]:
         """
         Generate a presigned URL for downloading a file from R2.

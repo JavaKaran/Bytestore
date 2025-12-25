@@ -26,5 +26,59 @@ export const fileService = {
         });
         return response.data;
     },
+
+    /**
+     * Upload a file to Cloudflare R2
+     */
+    uploadFile: async (file: globalThis.File, folderId?: string): Promise<File> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (folderId) {
+            formData.append('folder_id', folderId);
+        }
+
+        const response = await api.post<File>('/files/upload', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
+
+    /**
+     * Get presigned download URL for a file
+     */
+    getDownloadUrl: async (fileId: string, expiresIn: number = 3600): Promise<string> => {
+        const response = await api.get<{ download_url: string; expires_in: number }>(
+            `/files/${fileId}/download-url`,
+            {
+                params: {
+                    expires_in: expiresIn,
+                },
+            }
+        );
+        return response.data.download_url;
+    },
+
+    /**
+     * Update file (rename or move)
+     */
+    updateFile: async (fileId: string, name?: string, folderId?: string): Promise<File> => {
+        const response = await api.put<File>(`/files/${fileId}`, {
+            name,
+            folder_id: folderId || null,
+        });
+        return response.data;
+    },
+
+    /**
+     * Move file to a different folder
+     */
+    moveFile: async (fileId: string, folderId: string | null): Promise<File> => {
+        const response = await api.put<File>(`/files/${fileId}/move`, {
+            folder_id: folderId,
+        });
+        return response.data;
+    },
 };
 
