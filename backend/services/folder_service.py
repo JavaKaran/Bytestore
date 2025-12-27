@@ -155,7 +155,8 @@ class FolderService:
             files_count = self.db.query(File).filter(
                 and_(
                     File.folder_id == folder.id,
-                    File.status != FileStatus.DELETED
+                    File.status != FileStatus.DELETED,
+                    File.status != FileStatus.FAILED
                 )
             ).count()
             
@@ -334,7 +335,8 @@ class FolderService:
         files_count = self.db.query(File).filter(
             and_(
                 File.folder_id == folder_id,
-                File.status != FileStatus.DELETED
+                File.status != FileStatus.DELETED,
+                File.status != FileStatus.FAILED
             )
         ).count()
         

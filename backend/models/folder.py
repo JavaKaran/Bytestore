@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 import uuid
 from database import Base
 
-
 class Folder(Base):
     __tablename__ = "folders"
 
@@ -13,11 +12,10 @@ class Folder(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
     parent_folder_id = Column(UUID(as_uuid=True), ForeignKey("folders.id"), nullable=True, index=True)
-    path = Column(String, nullable=False, index=True)  # Full path for easy querying (e.g., "/documents/projects")
+    path = Column(String, nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # Relationships
     user = relationship("User", backref="folders")
     parent = relationship("Folder", remote_side=[id], backref="children")
     files = relationship("File", backref="folder")

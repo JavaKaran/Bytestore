@@ -1,17 +1,21 @@
 import boto3
 from botocore.exceptions import ClientError
+from botocore.config import Config
 from sqlalchemy.orm import Session
 from typing import Optional
 from uuid import UUID
 import uuid
 from datetime import datetime
 import os
+import math
 
 from models.file import File, FileStatus
 from core.config import settings
 from exceptions.exceptions import FileUploadException
 from services.folder_service import FolderService
 
+PART_SIZE = 5 * 1024 * 1024
+PRESIGNED_URL_EXPIRY = 3600
 
 class FileService:
     def __init__(self, db: Session):
@@ -141,7 +145,8 @@ class FileService:
         """Get all files for a user, optionally filtered by folder"""
         query = self.db.query(File).filter(
             File.user_id == user_id,
-            File.status != FileStatus.DELETED
+            File.status != FileStatus.DELETED,
+            File.status != FileStatus.FAILED
         )
         
         if folder_id is not None:
@@ -220,7 +225,8 @@ class FileService:
                 File.name == name,
                 File.folder_id == (folder_id if folder_id is not None else file_record.folder_id),
                 File.id != file_id,
-                File.status != FileStatus.DELETED
+                File.status != FileStatus.DELETED,
+                File.status != FileStatus.FAILED
             ).first()
             
             if existing:
@@ -268,7 +274,8 @@ class FileService:
             File.name == file_record.name,
             File.folder_id == folder_id,
             File.id != file_id,
-            File.status != FileStatus.DELETED
+            File.status != FileStatus.DELETED,
+            File.status != FileStatus.FAILED
         ).first()
         
         if existing:
@@ -313,4 +320,296 @@ class FileService:
             return url
         except ClientError as e:
             raise FileUploadException(f"Failed to generate download URL: {str(e)}")
+
+    def initiate_multipart_upload(
+        self,
+        user_id: UUID,
+        filename: str,
+        size: int,
+        mime_type: Optional[str] = None,
+        folder_id: Optional[UUID] = None
+    ) -> dict:
+        """
+        Initiate a multipart upload to R2.
+        
+        Args:
+            user_id: ID of the user
+            filename: Original filename
+            size: Total file size in bytes
+            mime_type: MIME type of the file
+            folder_id: Optional folder ID
+            
+        Returns:
+            Dict with file_id, upload_id, part_size, total_parts
+        """
+        try:
+            if folder_id:
+                folder = self.folder_service.get_folder_by_id(folder_id, user_id)
+                if not folder:
+                    raise FileUploadException("Folder not found or access denied")
+            
+            # Generate unique storage key
+            storage_key = self._generate_storage_key(user_id, filename, folder_id)
+            
+            # Calculate total parts
+            total_parts = math.ceil(size / PART_SIZE)
+            
+            # Initiate multipart upload in R2
+            try:
+                multipart_params = {
+                    'Bucket': settings.R2_BUCKET_NAME,
+                    'Key': storage_key,
+                }
+                if mime_type:
+                    multipart_params['ContentType'] = mime_type
+                
+                response = self.s3_client.create_multipart_upload(**multipart_params)
+                upload_id = response['UploadId']
+                
+            except ClientError as e:
+                raise FileUploadException(f"Failed to initiate multipart upload: {str(e)}")
+            
+            # Create file record in database with UPLOADING status
+            file_record = File(
+                user_id=user_id,
+                name=filename,
+                size=size,
+                mime=mime_type,
+                storage_key=storage_key,
+                status=FileStatus.UPLOADING,
+                folder_id=folder_id,
+                upload_id=upload_id,
+                total_parts=total_parts,
+                uploaded_parts_json="[]"
+            )
+            self.db.add(file_record)
+            self.db.commit()
+            
+            return {
+                "file_id": file_record.id,
+                "upload_id": upload_id,
+                "part_size": PART_SIZE,
+                "total_parts": total_parts
+            }
+            
+        except FileUploadException:
+            raise
+        except Exception as e:
+            self.db.rollback()
+            raise FileUploadException(f"Error initiating multipart upload: {str(e)}")
+
+    def generate_presigned_url_for_part(
+        self,
+        file_id: UUID,
+        user_id: UUID,
+        part_number: int
+    ) -> dict:
+        """
+        Generate a presigned URL for uploading a specific part.
+        
+        Args:
+            file_id: ID of the file
+            user_id: ID of the user
+            part_number: Part number (1-indexed)
+            
+        Returns:
+            Dict with url, part_number, expires_in
+        """
+        file_record = self.get_file_by_id(file_id, user_id)
+        
+        if not file_record:
+            raise FileUploadException("File not found or access denied")
+        
+        if file_record.status != FileStatus.UPLOADING:
+            raise FileUploadException("Upload is not in progress")
+        
+        if not file_record.upload_id:
+            raise FileUploadException("No active multipart upload for this file")
+        
+        if part_number < 1 or part_number > file_record.total_parts:
+            raise FileUploadException(f"Invalid part number. Must be between 1 and {file_record.total_parts}")
+        
+        try:
+            url = self.s3_client.generate_presigned_url(
+                'upload_part',
+                Params={
+                    'Bucket': settings.R2_BUCKET_NAME,
+                    'Key': file_record.storage_key,
+                    'UploadId': file_record.upload_id,
+                    'PartNumber': part_number
+                },
+                ExpiresIn=PRESIGNED_URL_EXPIRY
+            )
+            
+            return {
+                "url": url,
+                "part_number": part_number,
+                "expires_in": PRESIGNED_URL_EXPIRY
+            }
+            
+        except ClientError as e:
+            raise FileUploadException(f"Failed to generate presigned URL: {str(e)}")
+
+    def mark_part_uploaded(
+        self,
+        file_id: UUID,
+        user_id: UUID,
+        part_number: int,
+        etag: str
+    ) -> dict:
+        """
+        Mark a part as uploaded and store its ETag.
+        
+        Args:
+            file_id: ID of the file
+            user_id: ID of the user
+            part_number: Part number that was uploaded
+            etag: ETag returned by R2 for the uploaded part
+            
+        Returns:
+            Dict with uploaded_parts count
+        """
+        file_record = self.get_file_by_id(file_id, user_id)
+        
+        if not file_record:
+            raise FileUploadException("File not found or access denied")
+        
+        if file_record.status != FileStatus.UPLOADING:
+            raise FileUploadException("Upload is not in progress")
+        
+        # Add the part to uploaded parts
+        file_record.add_uploaded_part(part_number, etag)
+        self.db.commit()
+        
+        return {
+            "uploaded_parts": len(file_record.uploaded_parts),
+            "total_parts": file_record.total_parts
+        }
+
+    def complete_multipart_upload(
+        self,
+        file_id: UUID,
+        user_id: UUID,
+        parts: list[dict]
+    ) -> File:
+        """
+        Complete a multipart upload.
+        
+        Args:
+            file_id: ID of the file
+            user_id: ID of the user
+            parts: List of {part_number, etag} dicts
+            
+        Returns:
+            Updated File object
+        """
+        file_record = self.get_file_by_id(file_id, user_id)
+        
+        if not file_record:
+            raise FileUploadException("File not found or access denied")
+        
+        if file_record.status != FileStatus.UPLOADING:
+            raise FileUploadException("Upload is not in progress")
+        
+        if not file_record.upload_id:
+            raise FileUploadException("No active multipart upload for this file")
+        
+        try:
+            # Format parts for S3 API
+            s3_parts = [
+                {
+                    'ETag': part['etag'],
+                    'PartNumber': part['part_number']
+                }
+                for part in sorted(parts, key=lambda x: x['part_number'])
+            ]
+            
+            # Complete the multipart upload in R2
+            self.s3_client.complete_multipart_upload(
+                Bucket=settings.R2_BUCKET_NAME,
+                Key=file_record.storage_key,
+                UploadId=file_record.upload_id,
+                MultipartUpload={'Parts': s3_parts}
+            )
+            
+            # Update file status
+            file_record.status = FileStatus.COMPLETED
+            file_record.upload_id = None  # Clear upload ID
+            self.db.commit()
+            
+            return file_record
+            
+        except ClientError as e:
+            file_record.status = FileStatus.FAILED
+            self.db.commit()
+            raise FileUploadException(f"Failed to complete multipart upload: {str(e)}")
+
+    def abort_multipart_upload(self, file_id: UUID, user_id: UUID) -> bool:
+        """
+        Abort a multipart upload and cleanup.
+        
+        Args:
+            file_id: ID of the file
+            user_id: ID of the user
+            
+        Returns:
+            True if successfully aborted
+        """
+        file_record = self.get_file_by_id(file_id, user_id)
+        
+        if not file_record:
+            raise FileUploadException("File not found or access denied")
+        
+        if file_record.status != FileStatus.UPLOADING:
+            raise FileUploadException("No upload in progress to abort")
+        
+        try:
+            # Abort multipart upload in R2 if upload_id exists
+            if file_record.upload_id:
+                try:
+                    self.s3_client.abort_multipart_upload(
+                        Bucket=settings.R2_BUCKET_NAME,
+                        Key=file_record.storage_key,
+                        UploadId=file_record.upload_id
+                    )
+                except ClientError as e:
+                    # Log but continue - upload might have already been aborted
+                    print(f"Warning: Failed to abort multipart upload in R2: {str(e)}")
+            
+            # Mark file as deleted/failed
+            file_record.status = FileStatus.FAILED
+            file_record.upload_id = None
+            self.db.commit()
+            
+            return True
+            
+        except Exception as e:
+            self.db.rollback()
+            raise FileUploadException(f"Error aborting upload: {str(e)}")
+
+    def get_upload_status(self, file_id: UUID, user_id: UUID) -> dict:
+        """
+        Get the current status of a multipart upload.
+        
+        Args:
+            file_id: ID of the file
+            user_id: ID of the user
+            
+        Returns:
+            Dict with upload status information
+        """
+        file_record = self.get_file_by_id(file_id, user_id)
+        
+        if not file_record:
+            raise FileUploadException("File not found or access denied")
+        
+        return {
+            "file_id": file_record.id,
+            "upload_id": file_record.upload_id,
+            "filename": file_record.name,
+            "total_size": file_record.size,
+            "total_parts": file_record.total_parts or 0,
+            "uploaded_parts": file_record.get_uploaded_part_numbers(),
+            "status": file_record.status
+        }
 

@@ -11,9 +11,10 @@ interface ItemCardProps {
     onClick?: () => void
     onRename?: (item: File | Folder, newName: string) => void
     onMove?: (item: File | Folder) => void
+    onDelete?: (item: File | Folder) => void
 }
 
-export function ItemCard({ item, isLoading = false, onClick, onRename, onMove }: ItemCardProps) {
+export function ItemCard({ item, isLoading = false, onClick, onRename, onMove, onDelete }: ItemCardProps) {
     const isFile = 'size' in item && 'mime' in item
     const isFolder = 'path' in item
 
@@ -50,10 +51,10 @@ export function ItemCard({ item, isLoading = false, onClick, onRename, onMove }:
                         <Icon className={`h-5 w-5 ${iconColorClass}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{title}</p>
+                        <p className="font-medium truncate" title={title}>{title}</p>
                         <p className="text-xs text-muted-foreground">{subtitle}</p>
                     </div>
-                    <ItemCardMenu item={item} onRename={onRename} onMove={onMove} />
+                    <ItemCardMenu item={item} onRename={onRename} onMove={onMove} onDelete={onDelete} />
                 </div>
             </CardContent>
         </Card>

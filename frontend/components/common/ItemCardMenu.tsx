@@ -1,21 +1,23 @@
 import { useState } from 'react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { MoreVertical, Pencil, FolderInput } from 'lucide-react'
+import { MoreVertical, Pencil, FolderInput, Trash2 } from 'lucide-react'
 import type { File, Folder } from '@/lib/types'
 
 interface ItemCardMenuProps {
     item: File | Folder
     onRename?: (item: File | Folder, newName: string) => void
-    onMove?: (item: File | Folder) => void
+    onMove?: (item: File | Folder) => void,
+    onDelete?: (item: File | Folder) => void
 }
 
-export function ItemCardMenu({ item, onRename, onMove }: ItemCardMenuProps) {
+export function ItemCardMenu({ item, onRename, onMove, onDelete }: ItemCardMenuProps) {
     const [popoverOpen, setPopoverOpen] = useState(false)
     const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [newName, setNewName] = useState('')
 
     const isFolder = 'path' in item
@@ -36,6 +38,19 @@ export function ItemCardMenu({ item, onRename, onMove }: ItemCardMenuProps) {
         }
     }
 
+    const handleDeleteClick = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setDeleteDialogOpen(true)
+        setPopoverOpen(false)
+    }
+
+    const handleDeleteConfirm = () => {
+        if (onDelete) {
+            onDelete(item)
+        }
+        setDeleteDialogOpen(false)
+    }
+
     const handleRenameSubmit = () => {
         if (newName.trim() && newName.trim() !== currentName && onRename) {
             onRename(item, newName.trim())
@@ -44,7 +59,7 @@ export function ItemCardMenu({ item, onRename, onMove }: ItemCardMenuProps) {
         }
     }
 
-    if (!onRename && !onMove) {
+    if (!onRename && !onMove && !onDelete) {
         return null
     }
 
@@ -81,6 +96,18 @@ export function ItemCardMenu({ item, onRename, onMove }: ItemCardMenuProps) {
                                 <FolderInput className="h-4 w-4" />
                                 Move
                             </button>
+                        )}
+                        {onDelete && (
+                            <>
+                                <div className="border-t border-border my-1" />
+                                <button
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-sm text-destructive hover:bg-destructive/10 transition-colors"
+                                    onClick={handleDeleteClick}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete
+                                </button>
+                            </>
                         )}
                     </div>
                 </PopoverContent>
@@ -122,6 +149,34 @@ export function ItemCardMenu({ item, onRename, onMove }: ItemCardMenuProps) {
                             disabled={!newName.trim() || newName.trim() === currentName}
                         >
                             Rename
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent onClick={(e) => e.stopPropagation()}>
+                    <DialogHeader>
+                        <DialogTitle>Delete {isFolder ? 'Folder' : 'File'}</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete <span className="font-medium text-foreground">"{currentName}"</span>?
+                            {isFolder && ' This will also delete all files and folders inside it.'}
+                            {' '}This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteDialogOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteConfirm}
+                        >
+                            Delete
                         </Button>
                     </DialogFooter>
                 </DialogContent>

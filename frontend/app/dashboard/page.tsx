@@ -17,6 +17,11 @@ export default function DashboardPage() {
 
     const {
         uploading,
+        uploadProgress,
+        uploadPaused,
+        pauseUpload,
+        cancelUpload,
+        dismissProgress,
         loadingFileIds,
         popoverOpen,
         setPopoverOpen,
@@ -36,6 +41,7 @@ export default function DashboardPage() {
         handleRename,
         handleMoveClick,
         handleMove,
+        handleDelete,
     } = useDriveActions({
         onFileUploaded: refreshFiles,
         onFolderCreated: refreshFolders,
@@ -44,7 +50,17 @@ export default function DashboardPage() {
         onItemMoved: async () => {
             await Promise.all([refreshFolders(), refreshFiles()])
         },
+        onItemDeleted: async () => {
+            await Promise.all([refreshFolders(), refreshFiles()])
+        },
     })
+
+    // Placeholder for resume - actual file would need to be re-selected
+    const handleResumeUpload = () => {
+        // In a real implementation, you'd prompt the user to re-select the file
+        // or store the file reference. For now, just log a message.
+        console.log('Resume functionality requires file re-selection')
+    }
 
     if (loading) {
         return (
@@ -59,6 +75,12 @@ export default function DashboardPage() {
             user={user}
             title={`Welcome back, ${user?.username}!`}
             uploading={uploading}
+            uploadProgress={uploadProgress}
+            uploadPaused={uploadPaused}
+            onPauseUpload={pauseUpload}
+            onResumeUpload={handleResumeUpload}
+            onCancelUpload={cancelUpload}
+            onDismissProgress={dismissProgress}
             popoverOpen={popoverOpen}
             setPopoverOpen={setPopoverOpen}
             folderDialogOpen={folderDialogOpen}
@@ -81,6 +103,7 @@ export default function DashboardPage() {
             onRename={handleRename}
             onMoveClick={handleMoveClick}
             onMove={handleMove}
+            onDelete={handleDelete}
         />
     )
 }

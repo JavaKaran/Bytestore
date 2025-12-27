@@ -24,6 +24,11 @@ export default function FolderPage() {
 
     const {
         uploading,
+        uploadProgress,
+        uploadPaused,
+        pauseUpload,
+        cancelUpload,
+        dismissProgress,
         loadingFileIds,
         popoverOpen,
         setPopoverOpen,
@@ -43,6 +48,7 @@ export default function FolderPage() {
         handleRename,
         handleMoveClick,
         handleMove,
+        handleDelete,
     } = useDriveActions({
         folderId,
         onFileUploaded: refreshFiles,
@@ -53,7 +59,15 @@ export default function FolderPage() {
         onItemMoved: async () => {
             await Promise.all([refreshFolders(), refreshFiles()])
         },
+        onItemDeleted: async () => {
+            await Promise.all([refreshFolders(), refreshFiles()])
+        },
     })
+
+    // Placeholder for resume - actual file would need to be re-selected
+    const handleResumeUpload = () => {
+        console.log('Resume functionality requires file re-selection')
+    }
 
     const handleBackClick = () => {
         if (currentFolder?.parent_folder_id) {
@@ -78,6 +92,12 @@ export default function FolderPage() {
             showBackButton
             onBackClick={handleBackClick}
             uploading={uploading}
+            uploadProgress={uploadProgress}
+            uploadPaused={uploadPaused}
+            onPauseUpload={pauseUpload}
+            onResumeUpload={handleResumeUpload}
+            onCancelUpload={cancelUpload}
+            onDismissProgress={dismissProgress}
             popoverOpen={popoverOpen}
             setPopoverOpen={setPopoverOpen}
             folderDialogOpen={folderDialogOpen}
@@ -100,6 +120,7 @@ export default function FolderPage() {
             onRename={handleRename}
             onMoveClick={handleMoveClick}
             onMove={handleMove}
+            onDelete={handleDelete}
         />
     )
 }

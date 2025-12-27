@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Cookies from 'js-cookie'
@@ -6,8 +6,9 @@ import { AxiosError } from 'axios'
 import { authService } from '@/services/auth'
 import { folderService } from '@/services/folder'
 import { fileService } from '@/services/file'
+import { useResumableUpload } from '@/lib/hooks/useResumableUpload'
 import { FileStatus } from '@/lib/types'
-import type { File, Folder } from '@/lib/types'
+import type { File, Folder, UploadProgress } from '@/lib/types'
 
 interface UseDriveActionsOptions {
     folderId?: string
@@ -17,13 +18,13 @@ interface UseDriveActionsOptions {
     onFileRenamed?: () => Promise<void>
     onCurrentFolderRenamed?: () => Promise<void>
     onItemMoved?: () => Promise<void>
+    onItemDeleted?: () => Promise<void>
 }
 
 export function useDriveActions(options: UseDriveActionsOptions = {}) {
     const router = useRouter()
-    const { folderId, onFileUploaded, onFolderCreated, onFolderRenamed, onFileRenamed, onCurrentFolderRenamed, onItemMoved } = options
+    const { folderId, onFileUploaded, onFolderCreated, onFolderRenamed, onFileRenamed, onCurrentFolderRenamed, onItemMoved, onItemDeleted } = options
 
-    const [uploading, setUploading] = useState(false)
     const [loadingFileIds, setLoadingFileIds] = useState<Set<string>>(new Set())
     const [popoverOpen, setPopoverOpen] = useState(false)
     const [folderDialogOpen, setFolderDialogOpen] = useState(false)
@@ -31,6 +32,26 @@ export function useDriveActions(options: UseDriveActionsOptions = {}) {
     const [creatingFolder, setCreatingFolder] = useState(false)
     const [moveDialogOpen, setMoveDialogOpen] = useState(false)
     const [itemToMove, setItemToMove] = useState<File | Folder | null>(null)
+
+    // Resumable upload hook
+    const {
+        uploadFile: resumableUploadFile,
+        resumeUpload,
+        pauseUpload,
+        cancelUpload,
+        dismissProgress,
+        progress: uploadProgress,
+        isUploading: uploading,
+        isPaused: uploadPaused,
+    } = useResumableUpload({
+        onSuccess: async (file) => {
+            if (onFileUploaded) {
+                await onFileUploaded()
+            }
+        },
+        onError: (error) => {
+        },
+    })
 
     const handleLogout = async () => {
         try {
@@ -42,32 +63,18 @@ export function useDriveActions(options: UseDriveActionsOptions = {}) {
         }
     }
 
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0]
         if (!selectedFile) return
 
-        setUploading(true)
         setPopoverOpen(false)
-        try {
-            await fileService.uploadFile(selectedFile, folderId)
-            toast.success('File uploaded successfully', {
-                description: `${selectedFile.name} has been uploaded`,
-            })
-            
-            if (onFileUploaded) {
-                await onFileUploaded()
-            }
-        } catch (error) {
-            const axiosError = error as AxiosError<{ detail?: string }>
-            const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to upload file'
-            toast.error('Upload failed', {
-                description: errorMessage,
-            })
-        } finally {
-            setUploading(false)
-            event.target.value = ''
-        }
-    }
+        
+        // Use resumable upload for files
+        await resumableUploadFile(selectedFile, folderId)
+        
+        // Reset file input
+        event.target.value = ''
+    }, [folderId, resumableUploadFile])
 
     const handleCreateFolder = async () => {
         if (!folderName.trim()) {
@@ -203,8 +210,42 @@ export function useDriveActions(options: UseDriveActionsOptions = {}) {
         }
     }
 
+    const handleDelete = async (item: File | Folder) => {
+        try {
+            const isFolder = 'path' in item
+    
+            if (isFolder) {
+                await folderService.deleteFolder(item.id)
+                toast.success('Folder deleted successfully', {
+                    description: `Folder deleted`,
+                })
+            } else {
+                await fileService.deleteFile(item.id)
+                toast.success('File deleted successfully', {
+                    description: `File deleted`,
+                })
+            }
+
+            if(onItemDeleted) {
+                await onItemDeleted()
+            }
+        } catch (error) {
+            const axiosError = error as AxiosError<{ detail?: string }>
+            const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to delete item'
+            toast.error('Failed to delete item', {
+                description: errorMessage,
+            })
+        }
+    }
+
     return {
         uploading,
+        uploadProgress,
+        uploadPaused,
+        pauseUpload,
+        resumeUpload,
+        cancelUpload,
+        dismissProgress,
         loadingFileIds,
         popoverOpen,
         setPopoverOpen,
@@ -224,6 +265,7 @@ export function useDriveActions(options: UseDriveActionsOptions = {}) {
         handleRename,
         handleMoveClick,
         handleMove,
+        handleDelete
     }
 }
 

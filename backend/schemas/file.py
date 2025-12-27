@@ -60,3 +60,80 @@ class FileMove(BaseModel):
             }
         }
 
+
+class MultipartInitiateRequest(BaseModel):
+    """Request to initiate a multipart upload"""
+    filename: str
+    size: int
+    mime_type: Optional[str] = None
+    folder_id: Optional[UUID] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "filename": "large_video.mp4",
+                "size": 104857600,
+                "mime_type": "video/mp4",
+                "folder_id": None
+            }
+        }
+
+
+class MultipartInitiateResponse(BaseModel):
+    """Response after initiating multipart upload"""
+    file_id: UUID
+    upload_id: str
+    part_size: int
+    total_parts: int
+
+    class Config:
+        from_attributes = True
+
+
+class PresignedUrlResponse(BaseModel):
+    """Presigned URL for uploading a part"""
+    url: str
+    part_number: int
+    expires_in: int
+
+
+class CompletedPart(BaseModel):
+    """A completed upload part with its ETag"""
+    part_number: int
+    etag: str
+
+
+class MultipartCompleteRequest(BaseModel):
+    """Request to complete a multipart upload"""
+    parts: list[CompletedPart]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "parts": [
+                    {"part_number": 1, "etag": "\"abc123\""},
+                    {"part_number": 2, "etag": "\"def456\""}
+                ]
+            }
+        }
+
+
+class PartUploadedRequest(BaseModel):
+    """Request to mark a part as uploaded"""
+    part_number: int
+    etag: str
+
+
+class UploadStatusResponse(BaseModel):
+    """Current status of a multipart upload"""
+    file_id: UUID
+    upload_id: Optional[str]
+    filename: str
+    total_size: int
+    total_parts: int
+    uploaded_parts: list[int]
+    status: FileStatus
+
+    class Config:
+        from_attributes = True
+

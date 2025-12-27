@@ -55,3 +55,70 @@ export interface File {
     updated_at: string;
 }
 
+// Multipart Upload Types
+export interface MultipartInitiateRequest {
+    filename: string;
+    size: number;
+    mime_type?: string;
+    folder_id?: string;
+}
+
+export interface MultipartInitiateResponse {
+    file_id: string;
+    upload_id: string;
+    part_size: number;
+    total_parts: number;
+}
+
+export interface PresignedUrlResponse {
+    url: string;
+    part_number: number;
+    expires_in: number;
+}
+
+export interface CompletedPart {
+    part_number: number;
+    etag: string;
+}
+
+export interface MultipartCompleteRequest {
+    parts: CompletedPart[];
+}
+
+export interface UploadStatusResponse {
+    file_id: string;
+    upload_id: string | null;
+    filename: string;
+    total_size: number;
+    total_parts: number;
+    uploaded_parts: number[];
+    status: FileStatus;
+}
+
+// Upload State Types
+export type UploadStatus = 'idle' | 'initiating' | 'uploading' | 'paused' | 'completing' | 'completed' | 'error';
+
+export interface UploadProgress {
+    fileId: string;
+    filename: string;
+    totalSize: number;
+    uploadedBytes: number;
+    progress: number; // 0-100
+    status: UploadStatus;
+    error?: string;
+    completedParts: CompletedPart[];
+    totalParts: number;
+    currentPart: number;
+}
+
+export interface StoredUploadState {
+    fileId: string;
+    uploadId: string;
+    filename: string;
+    totalSize: number;
+    totalParts: number;
+    partSize: number;
+    completedParts: CompletedPart[];
+    folderId?: string;
+}
+

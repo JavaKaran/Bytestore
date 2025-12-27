@@ -80,5 +80,12 @@ export const fileService = {
         });
         return response.data;
     },
+
+    /**
+     * Delete file
+     */
+    deleteFile: async (fileId: string): Promise<void> => {
+        await api.delete(`/files/${fileId}`);
+    },
 };
 

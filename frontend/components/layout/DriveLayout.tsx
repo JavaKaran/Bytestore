@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ItemCard } from '@/components/common/ItemCard'
 import { MoveDialog } from '@/components/common/MoveDialog'
+import { UploadProgress } from '@/components/common/UploadProgress'
 import { LogOut, User as UserIcon, FolderPlus, FileUp, Plus, ArrowLeft } from 'lucide-react'
-import type { User, Folder, File } from '@/lib/types'
+import type { User, Folder, File, UploadProgress as UploadProgressType } from '@/lib/types'
 
 interface DriveLayoutProps {
     user: User | null
@@ -17,6 +18,12 @@ interface DriveLayoutProps {
     showBackButton?: boolean
     onBackClick?: () => void
     uploading: boolean
+    uploadProgress: UploadProgressType | null
+    uploadPaused: boolean
+    onPauseUpload: () => void
+    onResumeUpload: () => void
+    onCancelUpload: () => Promise<void>
+    onDismissProgress: () => void
     popoverOpen: boolean
     setPopoverOpen: (open: boolean) => void
     folderDialogOpen: boolean
@@ -39,6 +46,7 @@ interface DriveLayoutProps {
     onRename: (item: File | Folder, newName: string) => void
     onMoveClick: (item: File | Folder) => void
     onMove: (item: File | Folder, destinationFolderId: string | null) => void
+    onDelete: (item: File | Folder) => void
 }
 
 export function DriveLayout({
@@ -48,6 +56,12 @@ export function DriveLayout({
     showBackButton = false,
     onBackClick,
     uploading,
+    uploadProgress,
+    uploadPaused,
+    onPauseUpload,
+    onResumeUpload,
+    onDismissProgress,
+    onCancelUpload,
     popoverOpen,
     setPopoverOpen,
     folderDialogOpen,
@@ -70,6 +84,7 @@ export function DriveLayout({
     onRename,
     onMoveClick,
     onMove,
+    onDelete
 }: DriveLayoutProps) {
     return (
         <div className="min-h-screen bg-background">
@@ -217,6 +232,7 @@ export function DriveLayout({
                                         onClick={() => onFolderClick(folder.id)}
                                         onRename={onRename}
                                         onMove={onMoveClick}
+                                        onDelete={onDelete}
                                     />
                                 ))}
 
@@ -229,6 +245,7 @@ export function DriveLayout({
                                         onClick={() => onFileClick(file)}
                                         onRename={onRename}
                                         onMove={onMoveClick}
+                                        onDelete={onDelete}
                                     />
                                 ))}
                             </div>
@@ -242,6 +259,18 @@ export function DriveLayout({
                     item={itemToMove}
                     onMove={onMove}
                 />
+
+                {/* Upload Progress Indicator */}
+                {uploadProgress && (
+                    <UploadProgress
+                        progress={uploadProgress}
+                        isPaused={uploadPaused}
+                        onPause={onPauseUpload}
+                        onResume={onResumeUpload}
+                        onCancel={onCancelUpload}
+                        onDismiss={onDismissProgress}
+                    />
+                )}
             </div>
         </div>
     )
