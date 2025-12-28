@@ -17,7 +17,9 @@ class Settings:
     R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "")
     R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
     R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "")
-    R2_PUBLIC_URL: str = os.getenv("R2_PUBLIC_URL", "")  # Optional: Public URL if bucket is public
+    R2_PUBLIC_URL: str = os.getenv("R2_PUBLIC_URL", "")
+
+    ORIGIN: str = os.getenv("ORIGIN", "http://localhost:3000")
     
     @property
     def R2_ENDPOINT_URL(self) -> str:

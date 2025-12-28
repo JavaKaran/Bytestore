@@ -24,5 +24,8 @@ class Upload(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    file = relationship("File", backref="upload")
+    file = relationship("File", back_populates="upload")
     parts = relationship("UploadPart", back_populates="upload", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"Upload(id={self.id}, file_id={self.file_id}, upload_id={self.upload_id}, file_fingerprint={self.file_fingerprint}, chunk_size={self.chunk_size}, total_parts={self.total_parts}, status={self.status})"

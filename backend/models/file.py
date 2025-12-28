@@ -4,12 +4,12 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import enum
 import uuid
-import json
 from database import Base
 
 class FileStatus(str, enum.Enum):
     INITIATED = "initiated"
     COMPLETED = "completed"
+    FAILED = "failed"
     DELETED = "deleted"
 
 class File(Base):
@@ -27,33 +27,7 @@ class File(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", backref="file")
-    uploads = relationship("Upload", backref="file")
+    upload = relationship("Upload", back_populates="file", uselist=False, cascade="all, delete-orphan")
 
-    @property
-    def uploaded_parts(self) -> list[dict]:
-        """Get uploaded parts as a list of dicts"""
-        if self.uploaded_parts_json:
-            return json.loads(self.uploaded_parts_json)
-        return []
-
-    @uploaded_parts.setter
-    def uploaded_parts(self, parts: list[dict]):
-        """Set uploaded parts from a list of dicts"""
-        self.uploaded_parts_json = json.dumps(parts)
-
-    def add_uploaded_part(self, part_number: int, etag: str):
-        """Add a completed part to the uploaded parts list"""
-        parts = self.uploaded_parts
-
-        for part in parts:
-            if part["part_number"] == part_number:
-                part["etag"] = etag
-                self.uploaded_parts = parts
-                return
-        parts.append({"part_number": part_number, "etag": etag})
-        self.uploaded_parts = parts
-
-    def get_uploaded_part_numbers(self) -> list[int]:
-        """Get list of part numbers that have been uploaded"""
-        return [part["part_number"] for part in self.uploaded_parts]
-
+    def __repr__(self):
+        return f"File(id={self.id}, user_id={self.user_id}, name={self.name}, size={self.size}, mime={self.mime}, folder_id={self.folder_id}, storage_key={self.storage_key}, status={self.status}, created_at={self.created_at}, updated_at={self.updated_at})"

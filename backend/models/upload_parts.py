@@ -14,3 +14,6 @@ class UploadPart(Base):
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
 
     upload = relationship("Upload", back_populates="parts")
+
+    def __repr__(self):
+        return f"UploadPart(upload_id={self.upload_id}, part_number={self.part_number}, etag={self.etag}, uploaded_at={self.uploaded_at})"

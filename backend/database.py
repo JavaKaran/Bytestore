@@ -12,7 +12,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432
 # Create SQLAlchemy engine
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,  # Verify connections before using them
+    pool_pre_ping=True,
     pool_size=10,
     max_overflow=20
 )

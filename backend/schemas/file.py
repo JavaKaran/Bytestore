@@ -65,6 +65,7 @@ class MultipartInitiateRequest(BaseModel):
     """Request to initiate a multipart upload"""
     filename: str
     size: int
+    fingerprint: str
     mime_type: Optional[str] = None
     folder_id: Optional[UUID] = None
 
@@ -73,6 +74,7 @@ class MultipartInitiateRequest(BaseModel):
             "example": {
                 "filename": "large_video.mp4",
                 "size": 104857600,
+                "fingerprint": "1234567890",
                 "mime_type": "video/mp4",
                 "folder_id": None
             }
@@ -85,6 +87,7 @@ class MultipartInitiateResponse(BaseModel):
     upload_id: str
     part_size: int
     total_parts: int
+    uploaded_parts: list[dict]
 
     class Config:
         from_attributes = True
