@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { JetBrains_Mono } from "next/font/google"
 import type { ReactNode } from "react"
 import { Toaster } from "sonner"
-import { UploadCleanupProvider } from "@/components/providers/UploadCleanupProvider"
 import "./globals.css"
 
 const jetbrainsMono = JetBrains_Mono({
@@ -23,9 +22,7 @@ export default function RootLayout({
     return (
         <html lang="en" className="dark">
             <body className={jetbrainsMono.variable}>
-                <UploadCleanupProvider>
-                    {children}
-                </UploadCleanupProvider>
+                {children}
                 <Toaster theme="dark" />
             </body>
         </html>

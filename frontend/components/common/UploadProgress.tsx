@@ -1,14 +1,11 @@
 'use client';
 
-import { X, Pause, Play, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { UploadProgress as UploadProgressType } from '@/lib/types';
 
 interface UploadProgressProps {
     progress: UploadProgressType;
-    isPaused: boolean;
-    onPause: () => void;
-    onResume: () => void;
     onCancel: () => Promise<void>;
     onDismiss?: () => void;
 }
@@ -21,7 +18,7 @@ function formatBytes(bytes: number): string {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export function UploadProgress({ progress, isPaused, onPause, onResume, onCancel, onDismiss }: UploadProgressProps) {
+export function UploadProgress({ progress, onCancel, onDismiss }: UploadProgressProps) {
     const isCompleted = progress.status === 'completed';
     const isError = progress.status === 'error';
     const isActive = progress.status === 'uploading' || progress.status === 'initiating' || progress.status === 'completing';
@@ -38,7 +35,6 @@ export function UploadProgress({ progress, isPaused, onPause, onResume, onCancel
                     {isCompleted && <CheckCircle className="h-4 w-4 text-primary" />}
                     {isError && <AlertCircle className="h-4 w-4 text-destructive" />}
                     {isActive && <Loader2 className="h-4 w-4 text-primary animate-spin" />}
-                    {isPaused && <Pause className="h-4 w-4 text-amber-500" />}
                     <span className="text-sm font-medium text-card-foreground truncate max-w-[180px]">
                         {progress.filename}
                     </span>
@@ -53,7 +49,6 @@ export function UploadProgress({ progress, isPaused, onPause, onResume, onCancel
                 </Button>
             </div>
 
-            {/* Progress Bar */}
             <div className="mb-2">
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
@@ -62,8 +57,6 @@ export function UploadProgress({ progress, isPaused, onPause, onResume, onCancel
                                 ? 'bg-primary'
                                 : isError
                                 ? 'bg-destructive'
-                                : isPaused
-                                ? 'bg-amber-500'
                                 : 'bg-primary'
                         }`}
                         style={{ width: `${progress.progress}%` }}
@@ -71,7 +64,6 @@ export function UploadProgress({ progress, isPaused, onPause, onResume, onCancel
                 </div>
             </div>
 
-            {/* Status Text */}
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
                 <span>
                     {formatBytes(progress.uploadedBytes)} / {formatBytes(progress.totalSize)}
@@ -81,8 +73,6 @@ export function UploadProgress({ progress, isPaused, onPause, onResume, onCancel
                         ? 'Complete'
                         : isError
                         ? 'Failed'
-                        : isPaused
-                        ? 'Paused'
                         : progress.status === 'initiating'
                         ? 'Starting...'
                         : progress.status === 'completing'
@@ -91,38 +81,14 @@ export function UploadProgress({ progress, isPaused, onPause, onResume, onCancel
                 </span>
             </div>
 
-            {/* Error Message */}
             {isError && progress.error && (
                 <div className="text-xs text-destructive mb-3 bg-destructive/10 p-2 rounded">
                     {progress.error}
                 </div>
             )}
 
-            {/* Action Buttons */}
             {!isCompleted && !isError && (
                 <div className="flex gap-2">
-                    {/* {isPaused ? (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={onResume}
-                        >
-                            <Play className="h-4 w-4 mr-1" />
-                            Resume
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={onPause}
-                            disabled={progress.status === 'initiating' || progress.status === 'completing'}
-                        >
-                            <Pause className="h-4 w-4 mr-1" />
-                            Pause
-                        </Button>
-                    )} */}
                     <Button
                         variant="destructive"
                         size="sm"
@@ -135,7 +101,6 @@ export function UploadProgress({ progress, isPaused, onPause, onResume, onCancel
                 </div>
             )}
 
-            {/* Dismiss button for completed/error states */}
             {(isCompleted || isError) && (
                 <Button
                     variant="outline"

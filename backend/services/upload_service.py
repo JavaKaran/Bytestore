@@ -22,7 +22,17 @@ class UploadService(BaseService):
 
     def _get_upload_by_fingerprint(self, fingerprint: str) -> Optional[Upload]:
         """Get an upload by fingerprint"""
-        return self.db.query(Upload).filter(Upload.file_fingerprint == fingerprint).first()
+        return (
+            self
+                .db
+                .query(Upload)
+                .join(Upload.file)
+                .filter(
+                    Upload.file_fingerprint == fingerprint,
+                    Upload.status == UploadStatus.INPROGRESS
+                )
+                .first()
+        )
 
     def initiate_multipart_upload(
         self,
@@ -50,23 +60,19 @@ class UploadService(BaseService):
         try:
             upload = self._get_upload_by_fingerprint(fingerprint)
             
-            if upload:
-
+            if upload and upload.status == UploadStatus.INPROGRESS:
                 file = upload.file
-                status = file.status
 
-                if status ==  FileStatus.INITIATED:
-                    print(f"Upload already initiated for file {upload.parts}")
-                    return {
-                        "file_id": file.id,
-                        "upload_id": upload.upload_id,
-                        "part_size": self.PART_SIZE,
-                        "total_parts": upload.total_parts,
-                        "uploaded_parts": [
-                            {"part_number": p.part_number, "etag": p.etag}
-                            for p in upload.parts
-                        ]
-                    }
+                return {
+                    "file_id": file.id,
+                    "upload_id": upload.upload_id,
+                    "part_size": self.PART_SIZE,
+                    "total_parts": upload.total_parts,
+                    "uploaded_parts": [
+                        {"part_number": p.part_number, "etag": p.etag}
+                        for p in upload.parts
+                    ]
+                }
             
             storage_key = self._generate_storage_key(user_id, filename, folder_id, self.folder_service)
             

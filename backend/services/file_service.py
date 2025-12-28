@@ -98,8 +98,7 @@ class FileService(BaseService):
         """Get all files for a user, optionally filtered by folder"""
         query = self.db.query(File).filter(
             File.user_id == user_id,
-            File.status != FileStatus.DELETED,
-            File.status != FileStatus.FAILED
+            File.status.in_([FileStatus.COMPLETED]),
         )
         
         if folder_id is not None:

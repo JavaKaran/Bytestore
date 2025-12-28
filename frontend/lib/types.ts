@@ -59,6 +59,7 @@ export interface File {
 export interface MultipartInitiateRequest {
     filename: string;
     size: number;
+    fingerprint: string;
     mime_type?: string;
     folder_id?: string;
 }
@@ -68,6 +69,12 @@ export interface MultipartInitiateResponse {
     upload_id: string;
     part_size: number;
     total_parts: number;
+    uploaded_parts?: [
+        {
+            part_number: number;
+            etag: string;
+        }
+    ]
 }
 
 export interface PresignedUrlResponse {

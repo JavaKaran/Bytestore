@@ -18,8 +18,6 @@ export default function DashboardPage() {
     const {
         uploading,
         uploadProgress,
-        uploadPaused,
-        pauseUpload,
         cancelUpload,
         dismissProgress,
         loadingFileIds,
@@ -55,13 +53,6 @@ export default function DashboardPage() {
         },
     })
 
-    // Placeholder for resume - actual file would need to be re-selected
-    const handleResumeUpload = () => {
-        // In a real implementation, you'd prompt the user to re-select the file
-        // or store the file reference. For now, just log a message.
-        console.log('Resume functionality requires file re-selection')
-    }
-
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
@@ -76,9 +67,6 @@ export default function DashboardPage() {
             title={`Welcome back, ${user?.username}!`}
             uploading={uploading}
             uploadProgress={uploadProgress}
-            uploadPaused={uploadPaused}
-            onPauseUpload={pauseUpload}
-            onResumeUpload={handleResumeUpload}
             onCancelUpload={cancelUpload}
             onDismissProgress={dismissProgress}
             popoverOpen={popoverOpen}

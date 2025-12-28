@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from uuid import UUID
 from models.user import User
-from schemas.file import MultipartInitiateRequest, MultipartInitiateResponse, PresignedUrlResponse, PartUploadedRequest, MultipartCompleteRequest, FileUploadResponse
+from schemas.file import MultipartInitiateRequest, MultipartInitiateResponse, PresignedUrlResponse, PartUploadedRequest, MultipartCompleteRequest, FileUploadResponse, UploadPartResponse
 from services.upload_service import UploadService
 from dependencies.auth import get_current_active_user
 from database import get_db
@@ -75,7 +75,7 @@ async def get_presigned_url_for_part(
         )
 
 
-@router.post("/{file_id}/part-uploaded")
+@router.post("/{file_id}/part-uploaded", response_model=UploadPartResponse)
 async def mark_part_as_uploaded(
     file_id: UUID,
     request: PartUploadedRequest,

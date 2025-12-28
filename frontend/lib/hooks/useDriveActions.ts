@@ -33,16 +33,12 @@ export function useDriveActions(options: UseDriveActionsOptions = {}) {
     const [moveDialogOpen, setMoveDialogOpen] = useState(false)
     const [itemToMove, setItemToMove] = useState<File | Folder | null>(null)
 
-    // Resumable upload hook
     const {
         uploadFile: resumableUploadFile,
-        resumeUpload,
-        pauseUpload,
         cancelUpload,
         dismissProgress,
         progress: uploadProgress,
-        isUploading: uploading,
-        isPaused: uploadPaused,
+        isUploading: uploading
     } = useResumableUpload({
         onSuccess: async (file) => {
             if (onFileUploaded) {
@@ -241,9 +237,6 @@ export function useDriveActions(options: UseDriveActionsOptions = {}) {
     return {
         uploading,
         uploadProgress,
-        uploadPaused,
-        pauseUpload,
-        resumeUpload,
         cancelUpload,
         dismissProgress,
         loadingFileIds,

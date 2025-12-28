@@ -19,9 +19,6 @@ interface DriveLayoutProps {
     onBackClick?: () => void
     uploading: boolean
     uploadProgress: UploadProgressType | null
-    uploadPaused: boolean
-    onPauseUpload: () => void
-    onResumeUpload: () => void
     onCancelUpload: () => Promise<void>
     onDismissProgress: () => void
     popoverOpen: boolean
@@ -57,9 +54,6 @@ export function DriveLayout({
     onBackClick,
     uploading,
     uploadProgress,
-    uploadPaused,
-    onPauseUpload,
-    onResumeUpload,
     onDismissProgress,
     onCancelUpload,
     popoverOpen,
@@ -264,9 +258,6 @@ export function DriveLayout({
                 {uploadProgress && (
                     <UploadProgress
                         progress={uploadProgress}
-                        isPaused={uploadPaused}
-                        onPause={onPauseUpload}
-                        onResume={onResumeUpload}
                         onCancel={onCancelUpload}
                         onDismiss={onDismissProgress}
                     />

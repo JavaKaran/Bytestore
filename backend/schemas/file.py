@@ -140,3 +140,9 @@ class UploadStatusResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class UploadPartResponse(BaseModel):
+    uploaded_parts: int
+    total_parts: int
+
+    class Config:
+        from_attributes = True

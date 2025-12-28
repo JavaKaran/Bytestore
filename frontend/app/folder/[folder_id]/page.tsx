@@ -25,8 +25,6 @@ export default function FolderPage() {
     const {
         uploading,
         uploadProgress,
-        uploadPaused,
-        pauseUpload,
         cancelUpload,
         dismissProgress,
         loadingFileIds,
@@ -93,9 +91,6 @@ export default function FolderPage() {
             onBackClick={handleBackClick}
             uploading={uploading}
             uploadProgress={uploadProgress}
-            uploadPaused={uploadPaused}
-            onPauseUpload={pauseUpload}
-            onResumeUpload={handleResumeUpload}
             onCancelUpload={cancelUpload}
             onDismissProgress={dismissProgress}
             popoverOpen={popoverOpen}
