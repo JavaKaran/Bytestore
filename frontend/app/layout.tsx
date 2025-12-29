@@ -10,7 +10,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-    title: "G-Drive",
+    title: "ByteStore",
     description: "Modern file storage and management",
 }
 

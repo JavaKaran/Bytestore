@@ -63,12 +63,17 @@ export function useDriveActions(options: UseDriveActionsOptions = {}) {
         const selectedFile = event.target.files?.[0]
         if (!selectedFile) return
 
+        if (selectedFile.size > 1024 * 1024 * 30) {
+            toast.error('File size too large', {
+                description: 'File size must be less than 30MB',
+            })
+            return;
+        }
+
         setPopoverOpen(false)
         
-        // Use resumable upload for files
         await resumableUploadFile(selectedFile, folderId)
         
-        // Reset file input
         event.target.value = ''
     }, [folderId, resumableUploadFile])
 

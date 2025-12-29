@@ -10,6 +10,7 @@ from schemas.file import (
     FileListResponse, 
     FileUpdate, 
     FileMove,
+    UserFilesResponse,
 )
 from services.file_service import FileService
 from dependencies.auth import get_current_active_user
@@ -60,7 +61,7 @@ async def upload_file(
         )
 
 
-@router.get("/", response_model=list[FileListResponse])
+@router.get("/", response_model=UserFilesResponse)
 async def list_files(
     folder_id: Optional[UUID] = None,
     skip: int = 0,

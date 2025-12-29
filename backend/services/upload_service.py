@@ -9,6 +9,7 @@ from services.folder_service import FolderService
 from models.file import File, FileStatus
 from exceptions.exceptions import FileUploadException
 import math
+from fastapi import HTTPException
 from core.config import settings
 from models.upload_parts import UploadPart
 from sqlalchemy.exc import IntegrityError
@@ -215,6 +216,7 @@ class UploadService(BaseService):
             )
 
             file_record.upload.parts.append(upload_part)
+
             self.db.commit()
 
             uploaded_parts = (
@@ -227,6 +229,9 @@ class UploadService(BaseService):
                 "uploaded_parts": uploaded_parts,
                 "total_parts": file_record.upload.total_parts
             }
+
+        except HTTPException:
+            raise
         
         except IntegrityError:
             self.db.rollback()
@@ -279,6 +284,8 @@ class UploadService(BaseService):
                 UploadId=file_record.upload.upload_id,
                 MultipartUpload={'Parts': s3_parts}
             )
+
+            file_record.user.storage_used = (file_record.user.storage_used or 0) + file_record.size
             
             file_record.status = FileStatus.COMPLETED
             file_record.upload.status = UploadStatus.COMPLETED
@@ -323,6 +330,15 @@ class UploadService(BaseService):
                 except ClientError as e:
                     print(f"Warning: Failed to abort multipart upload in R2: {str(e)}")
             
+            chunks_uploaded = self.db.query(UploadPart).filter(UploadPart.upload_id == file_record.upload.id).count()
+
+            if chunks_uploaded > 0:
+                uploaded_before = chunks_uploaded * file_record.upload.chunk_size
+
+                storage_used = file_record.user.storage_used or 0
+                updated_storage_used = storage_used - uploaded_before
+                file_record.user.storage_used = 0 if updated_storage_used < 0 else updated_storage_used
+
             file_record.status = FileStatus.FAILED
             file_record.upload.status = UploadStatus.ABORTED
             self.db.commit()

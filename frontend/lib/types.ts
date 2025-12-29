@@ -55,6 +55,12 @@ export interface File {
     updated_at: string;
 }
 
+export interface UserFilesResponse {
+    files: File[];
+    storage_used: number;
+    storage_limit: number;
+}
+
 // Multipart Upload Types
 export interface MultipartInitiateRequest {
     filename: string;

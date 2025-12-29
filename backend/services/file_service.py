@@ -1,3 +1,4 @@
+from models.user import User
 from services.base import BaseService
 from botocore.exceptions import ClientError
 from sqlalchemy.orm import Session
@@ -100,6 +101,8 @@ class FileService(BaseService):
             File.user_id == user_id,
             File.status.in_([FileStatus.COMPLETED]),
         )
+
+        storage_used = self.db.query(User).filter(User.id == user_id).first().storage_used or 0
         
         if folder_id is not None:
             if folder_id:
@@ -110,8 +113,12 @@ class FileService(BaseService):
         else:
             query = query.filter(File.folder_id == None)
         
-        return query.order_by(File.created_at.desc()).offset(skip).limit(limit).all()
-
+        return {
+            "files": query.order_by(File.created_at.desc()).offset(skip).limit(limit).all(),
+            "storage_used": storage_used,
+            "storage_limit": settings.STORAGE_LIMIT
+        }
+        
     def delete_file(self, file_id: UUID, user_id: UUID) -> bool:
         """Delete a file from R2 and mark as deleted in database"""
         file_record = self.get_file_by_id(file_id, user_id)
@@ -127,7 +134,10 @@ class FileService(BaseService):
                 )
             except ClientError as e:
                 print(f"Warning: Failed to delete file from R2: {str(e)}")
-            
+            storage_used = file_record.user.storage_used or 0
+            updated_storage_used = storage_used - file_record.size
+            file_record.user.storage_used = 0 if updated_storage_used < 0 else updated_storage_used
+
             file_record.status = FileStatus.DELETED
             self.db.commit()
             return True

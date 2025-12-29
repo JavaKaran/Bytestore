@@ -36,6 +36,14 @@ class FileListResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class UserFilesResponse(BaseModel):
+    files: list[FileUploadResponse]
+    storage_used: int
+    storage_limit: int
+
+    class Config:
+        from_attributes = True
+
 
 class FileUpdate(BaseModel):
     name: Optional[str] = None

@@ -5,6 +5,7 @@ import type {
     CompletedPart,
     File,
 } from '@/lib/types';
+import { AxiosError } from 'axios';
 
 interface UseResumableUploadOptions {
     onSuccess?: (file: File) => void;
@@ -173,7 +174,7 @@ export function useResumableUpload(options: UseResumableUploadOptions = {}): Use
             onSuccess?.(completedFile);
 
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+            const errorMessage = error instanceof AxiosError ? error.response?.data?.detail : 'Upload failed';
 
             console.warn('Upload failed:', errorMessage);
 
@@ -207,10 +208,10 @@ export function useResumableUpload(options: UseResumableUploadOptions = {}): Use
     }, []);
 
     useEffect(() => {
-        if (progress && progress.status === 'completed') {
+        if (progress && (progress.status === 'completed' || progress?.status === 'error')) {
             setTimeout(() => {
                 dismissProgress();
-            }, 2000);
+            }, 5000);
         }
     }, [progress, dismissProgress]);
 

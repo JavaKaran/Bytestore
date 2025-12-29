@@ -1,5 +1,5 @@
 import { api } from '@/lib/config';
-import type { File } from '@/lib/types';
+import type { File, UserFilesResponse } from '@/lib/types';
 
 /**
  * File service
@@ -9,17 +9,17 @@ export const fileService = {
     /**
      * Get root files (files with no folder)
      */
-    getRootFiles: async (): Promise<File[]> => {
+    getRootFiles: async (): Promise<UserFilesResponse> => {
         // Omit folder_id parameter - FastAPI defaults to None, which returns root files
-        const response = await api.get<File[]>('/files/');
+        const response = await api.get<UserFilesResponse>('/files/');
         return response.data;
     },
 
     /**
      * Get files by folder ID
      */
-    getFilesByFolder: async (folderId: string): Promise<File[]> => {
-        const response = await api.get<File[]>('/files/', {
+    getFilesByFolder: async (folderId: string): Promise<UserFilesResponse> => {
+        const response = await api.get<UserFilesResponse>('/files/', {
             params: {
                 folder_id: folderId,
             },

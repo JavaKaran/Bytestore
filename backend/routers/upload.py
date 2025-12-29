@@ -7,6 +7,8 @@ from schemas.file import MultipartInitiateRequest, MultipartInitiateResponse, Pr
 from services.upload_service import UploadService
 from dependencies.auth import get_current_active_user
 from database import get_db
+from core.config import settings
+from exceptions.exceptions import StorageLimitReachedException
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
@@ -29,6 +31,10 @@ async def initiate_multipart_upload(
     """
     upload_service = UploadService(db)
     try:
+        storage_used = current_user.storage_used or 0
+        if storage_used + request.size > settings.STORAGE_LIMIT:
+            raise StorageLimitReachedException()
+
         result = upload_service.initiate_multipart_upload(
             user_id=current_user.id,
             filename=request.filename,
@@ -38,6 +44,9 @@ async def initiate_multipart_upload(
             folder_id=request.folder_id
         )
         return result
+    
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

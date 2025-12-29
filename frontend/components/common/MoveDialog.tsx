@@ -99,7 +99,7 @@ export function MoveDialog({ open, onOpenChange, item, onMove }: MoveDialogProps
                                 disabled={isRootDisabled}
                             >
                                 <Home className="h-4 w-4 text-primary" />
-                                <span>G-Drive</span>
+                                <span>ByteStore</span>
                             </button>
 
                             {/* Folder list */}

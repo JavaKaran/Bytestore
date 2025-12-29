@@ -22,6 +22,8 @@ export function useDriveData(options: UseDriveDataOptions = {}) {
     const [files, setFiles] = useState<File[]>([])
     const [loading, setLoading] = useState(true)
     const [itemsLoading, setItemsLoading] = useState(true)
+    const [storageUsed, setStorageUsed] = useState(0)
+    const [storageLimit, setStorageLimit] = useState(0)
 
     useEffect(() => {
         const token = Cookies.get('access_token')
@@ -45,7 +47,10 @@ export function useDriveData(options: UseDriveDataOptions = {}) {
                     
                     setCurrentFolder(folderData)
                     setFolders(folderFolders)
-                    setFiles(folderFiles)
+                    setFiles(folderFiles?.files || [])
+
+                    setStorageUsed(folderFiles?.storage_used || 0)
+                    setStorageLimit(folderFiles?.storage_limit || 0)
                 } else {
                     // Fetch root data
                     const [rootFolders, rootFiles] = await Promise.all([
@@ -53,7 +58,10 @@ export function useDriveData(options: UseDriveDataOptions = {}) {
                         fileService.getRootFiles(),
                     ])
                     setFolders(rootFolders)
-                    setFiles(rootFiles)
+                    setFiles(rootFiles?.files || [])
+
+                    setStorageUsed(rootFiles?.storage_used || 0)
+                    setStorageLimit(rootFiles?.storage_limit || 0)
                 }
             } catch (error) {
                 const axiosError = error as AxiosError<{ detail?: string }>
@@ -86,10 +94,16 @@ export function useDriveData(options: UseDriveDataOptions = {}) {
     const refreshFiles = async () => {
         if (folderId) {
             const folderFiles = await fileService.getFilesByFolder(folderId)
-            setFiles(folderFiles)
+            setFiles(folderFiles?.files || [])
+
+            setStorageUsed(folderFiles?.storage_used || 0)
+            setStorageLimit(folderFiles?.storage_limit || 0)
         } else {
             const rootFiles = await fileService.getRootFiles()
-            setFiles(rootFiles)
+            setFiles(rootFiles?.files || [])
+
+            setStorageUsed(rootFiles?.storage_used || 0)
+            setStorageLimit(rootFiles?.storage_limit || 0)
         }
     }
 
@@ -105,6 +119,8 @@ export function useDriveData(options: UseDriveDataOptions = {}) {
         currentFolder,
         folders,
         files,
+        storageUsed,
+        storageLimit,
         loading,
         itemsLoading,
         refreshFolders,

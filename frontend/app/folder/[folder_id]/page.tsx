@@ -15,6 +15,8 @@ export default function FolderPage() {
         currentFolder,
         folders,
         files,
+        storageUsed,
+        storageLimit,
         loading,
         itemsLoading,
         refreshFolders,
@@ -109,6 +111,8 @@ export default function FolderPage() {
             itemsLoading={itemsLoading}
             folders={folders}
             files={files}
+            storageUsed={storageUsed}
+            storageLimit={storageLimit}
             loadingFileIds={loadingFileIds}
             onFolderClick={handleFolderClick}
             onFileClick={handleFileClick}

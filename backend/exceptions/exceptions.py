@@ -73,3 +73,11 @@ class FileUploadException(BaseAPIException):
             detail=detail
         )
 
+
+class StorageLimitReachedException(BaseAPIException):
+    """Raised when storage limit is reached or about to be reached"""
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You can only upload up to 30MB of files. Please delete some files to free up space."
+        )

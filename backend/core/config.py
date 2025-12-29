@@ -20,6 +20,8 @@ class Settings:
     R2_PUBLIC_URL: str = os.getenv("R2_PUBLIC_URL", "")
 
     ORIGIN: str = os.getenv("ORIGIN", "http://localhost:3000")
+
+    STORAGE_LIMIT: int = int(os.getenv("STORAGE_LIMIT", 1024 * 1024 * 30)) # 30MB
     
     @property
     def R2_ENDPOINT_URL(self) -> str:

@@ -9,6 +9,8 @@ export default function DashboardPage() {
         user,
         folders,
         files,
+        storageUsed,
+        storageLimit,
         loading,
         itemsLoading,
         refreshFolders,
@@ -85,6 +87,8 @@ export default function DashboardPage() {
             itemsLoading={itemsLoading}
             folders={folders}
             files={files}
+            storageUsed={storageUsed}
+            storageLimit={storageLimit}
             loadingFileIds={loadingFileIds}
             onFolderClick={handleFolderClick}
             onFileClick={handleFileClick}

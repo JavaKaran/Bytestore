@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,7 @@ import { MoveDialog } from '@/components/common/MoveDialog'
 import { UploadProgress } from '@/components/common/UploadProgress'
 import { LogOut, User as UserIcon, FolderPlus, FileUp, Plus, ArrowLeft } from 'lucide-react'
 import type { User, Folder, File, UploadProgress as UploadProgressType } from '@/lib/types'
+import { formatFileSize } from '@/lib/utils'
 
 interface DriveLayoutProps {
     user: User | null
@@ -37,6 +38,8 @@ interface DriveLayoutProps {
     itemsLoading: boolean
     folders: Folder[]
     files: File[]
+    storageUsed: number
+    storageLimit: number
     loadingFileIds: Set<string>
     onFolderClick: (folderId: string) => void
     onFileClick: (file: File) => void
@@ -72,6 +75,8 @@ export function DriveLayout({
     itemsLoading,
     folders,
     files,
+    storageUsed,
+    storageLimit,
     loadingFileIds,
     onFolderClick,
     onFileClick,
@@ -84,7 +89,7 @@ export function DriveLayout({
         <div className="min-h-screen bg-background">
             <div className="border-b border-border">
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold">G-Drive</h1>
+                    <h1 className="text-2xl font-semibold">ByteStore</h1>
                     <div className="flex items-center gap-4">
                         {user && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -245,6 +250,11 @@ export function DriveLayout({
                             </div>
                         )}
                     </CardContent>
+                    <CardFooter>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>Storage Used: {formatFileSize(storageUsed)} / {formatFileSize(storageLimit)} ({Math.round((storageUsed / storageLimit) * 100)}%)</span>
+                        </div>
+                    </CardFooter>
                 </Card>
 
                 <MoveDialog
