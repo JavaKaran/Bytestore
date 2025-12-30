@@ -1,3 +1,4 @@
+from background import cleanup_old_files
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -6,6 +7,7 @@ from database import engine, get_db, Base
 from routers import *
 from models import *
 from core.config import settings
+import asyncio
 
 Base.metadata.create_all(bind=engine)
 
@@ -30,6 +32,7 @@ app.add_middleware(
 async def startup_event():
     """Initialize database connection on startup"""
     try:
+        asyncio.create_task(cleanup_old_files())
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         print("Database connection successful")
