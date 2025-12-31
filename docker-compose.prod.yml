@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: g-drive-api
+    ports:
+      - "${API_PORT}:8000"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env.prod
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: g-drive-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - .env.prod
+    depends_on:
+      - api
+    restart: unless-stopped
