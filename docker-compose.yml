@@ -29,7 +29,7 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - .env
+      - .env.prod
     environment:
       - PYTHONUNBUFFERED=1
     depends_on:

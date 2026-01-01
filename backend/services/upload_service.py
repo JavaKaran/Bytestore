@@ -1,3 +1,4 @@
+from logging import Logger
 from sqlalchemy.orm import Session
 from models.uploads import Upload, UploadStatus
 from typing import Optional
@@ -61,8 +62,10 @@ class UploadService(BaseService):
         try:
             upload = self._get_upload_by_fingerprint(fingerprint)
             
-            if upload and upload.status == UploadStatus.INPROGRESS:
+            if upload and upload.status == UploadStatus.INPROGRESS and upload.file.status == FileStatus.INITIATED:
                 file = upload.file
+
+                print(f"Upload already in progress for file {file.id}")
 
                 return {
                     "file_id": file.id,
@@ -76,6 +79,8 @@ class UploadService(BaseService):
                 }
             
             storage_key = self._generate_storage_key(user_id, filename, folder_id, self.folder_service)
+
+            print(f"Generating storage key for file {filename} in folder {folder_id}")
             
             total_parts = math.ceil(size / self.PART_SIZE)
             
