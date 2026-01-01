@@ -91,6 +91,10 @@ export default function LoginPage() {
                                 Sign up
                             </Link>
                         </div>
+                        <div className="text-sm text-center text-muted-foreground">
+                            <p>Guest credentials</p>
+                            <p>username: johndoe | password: johndoe</p>
+                        </div>
                     </CardFooter>
                 </form>
             </Card>
